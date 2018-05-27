@@ -1,0 +1,6 @@
+[package]
+name = "rust-type-computations"
+version = "0.1.0"
+authors = ["Sönke Hahn <soenkehahn@gmail.com>"]
+
+[dependencies]
