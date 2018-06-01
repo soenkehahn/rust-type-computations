@@ -2,37 +2,68 @@
 use std::marker::PhantomData;
 
 fn main() {
-    let () = <()>::add(
-        PhantomData: PhantomData<S<Z>>,
-        PhantomData: PhantomData<S<Z>>,
-    );
+    // let () = <()>::reduce(PhantomData: PhantomData<I>);
+    // let () = <()>::reduce(PhantomData: PhantomData<App<I, I>>);
+    // let () = <()>::reduce(PhantomData: PhantomData<App<App<K, I>, I>>);
+    // let () = <()>::reduce(PhantomData: PhantomData<App<K, I>>);
+    // let () = <()>::reduce(PhantomData: PhantomData<App<App<App<S, X>, Y>, Z>>);
+    // let PhantomData: PhantomData<()> = <()>::reduce(PhantomData: PhantomData<App<App<I, K>, I>>);
+    let PhantomData: PhantomData<()> = <()>::reduce(PhantomData: PhantomData<App<App<I, I>, I>>);
+    // let PhantomData: PhantomData<()> =
+    //     <()>::reduce(PhantomData: PhantomData<App<App<App<I, K>, I>, I>>);
 }
 
-struct Z;
-struct S<T: Nat>(PhantomData<T>);
+trait SKI<Input> {
+    type Result;
 
-trait Nat {}
-
-impl<N: Nat> Nat for S<N> {}
-impl Nat for Z {}
-
-trait Add<A, B> {
-    type R;
-
-    fn add(_: PhantomData<A>, _: PhantomData<B>) -> PhantomData<Self::R> {
+    fn reduce(PhantomData: PhantomData<Input>) -> PhantomData<Self::Result> {
         PhantomData
     }
 }
 
-impl<B> Add<Z, B> for () {
-    type R = B;
+struct X;
+struct Y;
+struct Z;
+
+struct S;
+struct K;
+struct I;
+
+struct App<A, B> {
+    _phantom: PhantomData<(A, B)>,
 }
 
-impl<A, B> Add<S<A>, B> for ()
+// * terminal rules
+
+impl SKI<K> for () {
+    type Result = K;
+}
+
+impl SKI<I> for () {
+    type Result = I;
+}
+
+impl<A> SKI<App<K, A>> for () {
+    type Result = App<K, A>;
+}
+
+// * non-terminal rules
+
+impl<A> SKI<App<I, A>> for () {
+    type Result = A;
+}
+
+impl<A, B> SKI<App<App<K, A>, B>> for () {
+    type Result = A;
+}
+
+impl<A, B, C> SKI<App<App<App<S, A>, B>, C>> for () {
+    type Result = App<App<A, C>, App<B, C>>;
+}
+
+impl<A, B> SKI<App<App<I, A>, B>> for ()
 where
-    A: Nat,
-    B: Nat,
-    (): Add<A, S<B>>,
+    (): SKI<App<A, B>>,
 {
-    type R = <() as Add<A, S<B>>>::R;
+    type Result = <() as SKI<App<A, B>>>::Result;
 }
