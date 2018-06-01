@@ -1,25 +1,22 @@
-#![feature(type_ascription)]
 use std::marker::PhantomData;
 
 fn main() {
-    // let () = <()>::reduce(PhantomData: PhantomData<I>);
-    // let () = <()>::reduce(PhantomData: PhantomData<App<I, I>>);
-    // let () = <()>::reduce(PhantomData: PhantomData<App<App<K, I>, I>>);
-    // let () = <()>::reduce(PhantomData: PhantomData<App<K, I>>);
-    // let () = <()>::reduce(PhantomData: PhantomData<App<App<App<S, X>, Y>, Z>>);
-    // let PhantomData: PhantomData<()> = <()>::reduce(PhantomData: PhantomData<App<App<I, K>, I>>);
-    let PhantomData: PhantomData<()> = <()>::reduce(PhantomData: PhantomData<App<App<I, I>, I>>);
+    let phantom: PhantomData<()> = PhantomData;
+    let () = <()>::reduce(phantom);
+    // let () = <()>::reduce(PhantomData: PhantomData<Seq<I, Empty>>);
+    // let () = <()>::reduce(PhantomData: PhantomData<Seq<I, Seq<I, Empty>>>);
+    // let () = <()>::reduce(PhantomData: PhantomData<Seq<K, Seq<I, Seq<I, Empty>>>>);
+    // let () = <()>::reduce(PhantomData: PhantomData<Seq<K, Seq<I, Empty>>>);
+    // let () = <()>::reduce(PhantomData: PhantomData<Seq<S, Seq<X, Seq<Y, Seq<Z, Empty>>>>>);
+    // let PhantomData: PhantomData<()> =
+    //     <()>::reduce(PhantomData: PhantomData<Seq<I, Seq<K, Seq<I, Empty>>>>);
+    // let PhantomData: PhantomData<()> =
+    //     <()>::reduce(PhantomData: PhantomData<Seq<I, Seq<I, Seq<I, Empty>>>>);
     // let PhantomData: PhantomData<()> =
     //     <()>::reduce(PhantomData: PhantomData<App<App<App<I, K>, I>, I>>);
 }
 
-trait SKI<Input> {
-    type Result;
-
-    fn reduce(PhantomData: PhantomData<Input>) -> PhantomData<Self::Result> {
-        PhantomData
-    }
-}
+// * symbols
 
 struct X;
 struct Y;
@@ -29,41 +26,78 @@ struct S;
 struct K;
 struct I;
 
-struct App<A, B> {
+trait Element {}
+impl Element for I {}
+impl Element for K {}
+impl Element for S {}
+impl Element for X {}
+impl Element for Y {}
+impl Element for Z {}
+
+// * list
+
+struct Seq<A: Element, B> {
     _phantom: PhantomData<(A, B)>,
 }
 
-// * terminal rules
+struct Empty;
 
-impl SKI<K> for () {
-    type Result = K;
+trait List {}
+impl<A: Element, Rest: List> List for Seq<A, Rest> {}
+impl List for Empty {}
+
+// * groups
+
+struct Group<Inner: List> {
+    _phantom: PhantomData<Inner>,
 }
 
-impl SKI<I> for () {
-    type Result = I;
+impl<Inner: List> Element for Group<Inner> {}
+
+// * SKI reduction
+
+trait SKI<L: List> {
+    type Result;
+
+    fn reduce(PhantomData: PhantomData<L>) -> PhantomData<Self::Result> {
+        PhantomData
+    }
 }
 
-impl<A> SKI<App<K, A>> for () {
-    type Result = App<K, A>;
-}
-
-// * non-terminal rules
-
-impl<A> SKI<App<I, A>> for () {
-    type Result = A;
-}
-
-impl<A, B> SKI<App<App<K, A>, B>> for () {
-    type Result = A;
-}
-
-impl<A, B, C> SKI<App<App<App<S, A>, B>, C>> for () {
-    type Result = App<App<A, C>, App<B, C>>;
-}
-
-impl<A, B> SKI<App<App<I, A>, B>> for ()
+impl<A, Rest> SKI<Seq<I, Seq<A, Rest>>> for ()
 where
-    (): SKI<App<A, B>>,
+    A: Element,
+    Rest: List,
+    (): SKI<Seq<A, Rest>>,
 {
-    type Result = <() as SKI<App<A, B>>>::Result;
+    type Result = <() as SKI<Seq<A, Rest>>>::Result;
+}
+
+impl<A, B, Rest> SKI<Seq<K, Seq<A, Seq<B, Rest>>>> for ()
+where
+    A: Element,
+    B: Element,
+    Rest: List,
+{
+    type Result = Seq<A, Rest>;
+}
+
+impl<A, B, C, Rest> SKI<Seq<S, Seq<A, Seq<B, Seq<C, Rest>>>>> for ()
+where
+    A: Element,
+    B: Element,
+    C: Element,
+    Rest: List,
+{
+    type Result = Seq<A, Seq<C, Seq<Group<Seq<B, Seq<C, Empty>>>, Rest>>>;
+}
+
+// * invariant rules
+
+impl SKI<Seq<I, Empty>> for () {
+    type Result = Seq<I, Empty>;
+}
+
+impl SKI<Seq<K, Seq<I, Empty>>> for () {
+    type Result = Seq<K, Seq<I, Empty>>;
 }
