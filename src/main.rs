@@ -3,17 +3,6 @@ use std::marker::PhantomData;
 fn main() {
     let phantom: PhantomData<()> = PhantomData;
     let () = <()>::reduce(phantom);
-    // let () = <()>::reduce(PhantomData: PhantomData<Seq<I, Empty>>);
-    // let () = <()>::reduce(PhantomData: PhantomData<Seq<I, Seq<I, Empty>>>);
-    // let () = <()>::reduce(PhantomData: PhantomData<Seq<K, Seq<I, Seq<I, Empty>>>>);
-    // let () = <()>::reduce(PhantomData: PhantomData<Seq<K, Seq<I, Empty>>>);
-    // let () = <()>::reduce(PhantomData: PhantomData<Seq<S, Seq<X, Seq<Y, Seq<Z, Empty>>>>>);
-    // let PhantomData: PhantomData<()> =
-    //     <()>::reduce(PhantomData: PhantomData<Seq<I, Seq<K, Seq<I, Empty>>>>);
-    // let PhantomData: PhantomData<()> =
-    //     <()>::reduce(PhantomData: PhantomData<Seq<I, Seq<I, Seq<I, Empty>>>>);
-    // let PhantomData: PhantomData<()> =
-    //     <()>::reduce(PhantomData: PhantomData<App<App<App<I, K>, I>, I>>);
 }
 
 // * symbols
@@ -73,31 +62,6 @@ where
     type Result = <() as SKI<Seq<A, Rest>>>::Result;
 }
 
-impl<A, B, Rest> SKI<Seq<K, Seq<A, Seq<B, Rest>>>> for ()
-where
-    A: Element,
-    B: Element,
-    Rest: List,
-{
-    type Result = Seq<A, Rest>;
-}
-
-impl<A, B, C, Rest> SKI<Seq<S, Seq<A, Seq<B, Seq<C, Rest>>>>> for ()
-where
-    A: Element,
-    B: Element,
-    C: Element,
-    Rest: List,
-{
-    type Result = Seq<A, Seq<C, Seq<Group<Seq<B, Seq<C, Empty>>>, Rest>>>;
-}
-
-// * invariant rules
-
 impl SKI<Seq<I, Empty>> for () {
     type Result = Seq<I, Empty>;
-}
-
-impl SKI<Seq<K, Seq<I, Empty>>> for () {
-    type Result = Seq<K, Seq<I, Empty>>;
 }
