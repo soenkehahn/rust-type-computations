@@ -1,8 +1,12 @@
+#![recursion_limit = "8"]
 use std::marker::PhantomData;
 
 fn main() {
-    let phantom: PhantomData<()> = PhantomData;
-    let () = <()>::reduce(phantom);
+    // let () = <() as SKI<Seq<I, Seq<I, Empty>>>>::reduce(PhantomData);
+    // let () = <() as SKI<Seq<K, Seq<I, Seq<I, Empty>>>>>::reduce(PhantomData);
+    // let () = <() as SKI<Seq<K, Seq<I, Empty>>>>::reduce(PhantomData);
+    // let () = <() as SKI<Seq<K, Empty>>>::reduce(PhantomData);
+    let () = <() as SKI<Seq<S, Seq<I, Seq<I, Seq<I, Empty>>>>>>::reduce(PhantomData);
 }
 
 // * symbols
@@ -53,15 +57,63 @@ trait SKI<L: List> {
     }
 }
 
+// * I reduction rules
+impl SKI<Seq<I, Empty>> for () {
+    type Result = Seq<I, Empty>;
+}
+
 impl<A, Rest> SKI<Seq<I, Seq<A, Rest>>> for ()
 where
     A: Element,
+    Rest: List,
+    (): SKI<Seq<A, Rest>>,
+    // Self::Result,
+{
+    type Result = <() as SKI<Seq<A, Rest>>>::Result;
+}
+
+// * K reduction rules
+impl<A, B, Rest> SKI<Seq<K, Seq<A, Seq<B, Rest>>>> for ()
+where
+    A: Element,
+    B: Element,
     Rest: List,
     (): SKI<Seq<A, Rest>>,
 {
     type Result = <() as SKI<Seq<A, Rest>>>::Result;
 }
 
-impl SKI<Seq<I, Empty>> for () {
-    type Result = Seq<I, Empty>;
+impl<A> SKI<Seq<K, Seq<A, Empty>>> for ()
+where
+    A: Element,
+{
+    type Result = Seq<K, Seq<A, Empty>>;
+}
+
+impl SKI<Seq<K, Empty>> for () {
+    type Result = Seq<K, Empty>;
+}
+
+// * S reduction rules
+impl<A, B, C, Rest> SKI<Seq<S, Seq<A, Seq<B, Seq<C, Rest>>>>> for ()
+where
+    A: Element,
+    B: Element,
+    C: Element,
+    Rest: List,
+    (): SKI<Seq<A, Seq<C, Seq<Group<Seq<B, Seq<C, Empty>>>, Empty>>>>,
+{
+    type Result = <() as SKI<Seq<A, Seq<C, Seq<Group<Seq<B, Seq<C, Empty>>>, Empty>>>>>::Result;
+}
+
+// * Group reduction rule
+impl<Expr, Rest> SKI<Seq<Group<Expr>, Rest>> for ()
+where
+    Expr: List,
+    Rest: List,
+    (): SKI<Expr>,
+    // (): SKI<Seq<<() as SKI<Expr>>::Result, Rest>>,
+{
+    type Result = <() as SKI<Expr>>::Result;
+    // type Result = <() as SKI<Seq<<() as SKI<Expr>>::Result, Rest>>>::Result;
 }
