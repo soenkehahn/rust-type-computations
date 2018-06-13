@@ -1,18 +1,36 @@
-#![recursion_limit = "16"]
+#![recursion_limit = "32"]
 
 use std::marker::PhantomData;
 
 fn main() {
+    // * concatenation
+    // let () = <() as Concat<Empty, Seq<I, Empty>>>::concat(PhantomData);
+    // let () = <() as Concat<Seq<I, Empty>, Empty>>::concat(PhantomData);
+    // let () = <() as Concat<Seq<I, Empty>, Seq<K, Empty>>>::concat(PhantomData);
     // let () = <() as SKI<Seq<I, Seq<I, Empty>>>>::reduce(PhantomData);
     // let () = <() as SKI<Seq<K, Seq<I, Seq<I, Empty>>>>>::reduce(PhantomData);
     // let () = <() as SKI<Seq<K, Seq<I, Empty>>>>::reduce(PhantomData);
     // let () = <() as SKI<Seq<K, Empty>>>::reduce(PhantomData);
     // let () = <() as SKI<Seq<S, Seq<I, Seq<I, Seq<I, Empty>>>>>>::reduce(PhantomData);
     // let () = <() as SKI<Seq<S, Seq<I, Seq<I, Seq<I, Seq<I, Empty>>>>>>>::reduce(PhantomData);
-    let () = <() as SKI<Seq<Group<Seq<I, Empty>>, Seq<K, Empty>>>>::reduce(PhantomData);
+    // let () = <() as SKI<Seq<Group<Seq<I, Empty>>, Seq<K, Empty>>>>::reduce(PhantomData);
+    // let () = <() as SKI<Seq<S, Seq<X, Seq<Y, Seq<Z, Seq<K, Empty>>>>>>>::reduce(PhantomData);
+
+    // * flip
     // let () = <() as SKI<
-    //     Seq<S, Seq<I, Seq<I, Seq<Group<Seq<S, Seq<I, Seq<I, Empty>>>>, Empty>>>>,
+    //     Seq<
+    //         S,
+    //         Seq<
+    //             Group<Seq<K, Seq<Group<Seq<S, Seq<I, Empty>>>, Empty>>>,
+    //             Seq<K, Seq<S, Seq<K, Empty>>>,
+    //         >,
+    //     >,
     // >>::reduce(PhantomData);
+
+    // * non-terminating:
+    let () = <() as SKI<
+        Seq<S, Seq<I, Seq<I, Seq<Group<Seq<S, Seq<I, Seq<I, Empty>>>>, Empty>>>>,
+    >>::reduce(PhantomData);
 }
 
 // * symbols
@@ -45,13 +63,25 @@ trait List {}
 impl<A: Element, Rest: List> List for Seq<A, Rest> {}
 impl List for Empty {}
 
-// concatenation
+// * concatenation
+
 trait Concat<A: List, B: List> {
     type Result: List;
 
     fn concat(PhantomData: PhantomData<(A, B)>) -> PhantomData<Self::Result> {
         PhantomData
     }
+}
+
+impl<B: List> Concat<Empty, B> for () {
+    type Result = B;
+}
+
+impl<A: Element, Rest: List, L: List> Concat<Seq<A, Rest>, L> for ()
+where
+    (): Concat<Rest, L>,
+{
+    type Result = Seq<A, <() as Concat<Rest, L>>::Result>;
 }
 
 // * groups
@@ -73,6 +103,7 @@ trait SKI<L: List> {
 }
 
 // * I reduction rules
+
 impl SKI<Seq<I, Empty>> for () {
     type Result = Seq<I, Empty>;
 }
@@ -82,12 +113,12 @@ where
     A: Element,
     Rest: List,
     (): SKI<Seq<A, Rest>>,
-    // Self::Result,
 {
     type Result = <() as SKI<Seq<A, Rest>>>::Result;
 }
 
 // * K reduction rules
+
 impl<A, B, Rest> SKI<Seq<K, Seq<A, Seq<B, Rest>>>> for ()
 where
     A: Element,
@@ -101,8 +132,9 @@ where
 impl<A> SKI<Seq<K, Seq<A, Empty>>> for ()
 where
     A: Element,
+    (): SKI<Seq<A, Empty>>,
 {
-    type Result = Seq<K, Seq<A, Empty>>;
+    type Result = Seq<K, Seq<Group<<() as SKI<Seq<A, Empty>>>::Result>, Empty>>;
 }
 
 impl SKI<Seq<K, Empty>> for () {
@@ -110,15 +142,16 @@ impl SKI<Seq<K, Empty>> for () {
 }
 
 // * S reduction rules
+
 impl<A, B, C, Rest> SKI<Seq<S, Seq<A, Seq<B, Seq<C, Rest>>>>> for ()
 where
     A: Element,
     B: Element,
     C: Element,
     Rest: List,
-    (): SKI<Seq<A, Seq<C, Seq<Group<Seq<B, Seq<C, Empty>>>, Empty>>>>,
+    (): SKI<Seq<A, Seq<C, Seq<Group<Seq<B, Seq<C, Empty>>>, Rest>>>>,
 {
-    type Result = <() as SKI<Seq<A, Seq<C, Seq<Group<Seq<B, Seq<C, Empty>>>, Empty>>>>>::Result;
+    type Result = <() as SKI<Seq<A, Seq<C, Seq<Group<Seq<B, Seq<C, Empty>>>, Rest>>>>>::Result;
 }
 
 impl SKI<Seq<S, Empty>> for () {
@@ -141,17 +174,14 @@ where
 }
 
 // * Group reduction rule
+
 impl<Expr, Rest> SKI<Seq<Group<Expr>, Rest>> for ()
 where
     Expr: List,
     Rest: List,
     (): SKI<Expr>,
-    // <() as SKI<Expr>>::Result: List,
     (): Concat<<() as SKI<Expr>>::Result, Rest>,
     (): SKI<<() as Concat<<() as SKI<Expr>>::Result, Rest>>::Result>,
-    // (): SKI<Seq<<() as SKI<Expr>>::Result, Rest>>
 {
-    // type Result = Seq<<() as SKI<Expr>>::Result, Rest>;
-    // type Result = <() as SKI<Seq<<() as SKI<Expr>>::Result, Rest>>>::Result;
     type Result = <() as SKI<<() as Concat<<() as SKI<Expr>>::Result, Rest>>::Result>>::Result;
 }
