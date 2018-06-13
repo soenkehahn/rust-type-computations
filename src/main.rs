@@ -17,27 +17,26 @@ fn main() {
     // let () = <() as SKI<Seq<S, Seq<X, Seq<Y, Seq<Z, Seq<K, Empty>>>>>>>::reduce(PhantomData);
 
     // * flip
-    // let () = <() as SKI<
-    //     Seq<
-    //         S,
-    //         Seq<
-    //             Group<Seq<K, Seq<Group<Seq<S, Seq<I, Empty>>>, Empty>>>,
-    //             Seq<K, Seq<S, Seq<K, Empty>>>,
-    //         >,
-    //     >,
-    // >>::reduce(PhantomData);
+    let () = <() as SKI<
+        Seq<
+            S,
+            Seq<
+                Group<Seq<K, Seq<Group<Seq<S, Seq<I, Empty>>>, Empty>>>,
+                Seq<K, Seq<X, Seq<Y, Empty>>>,
+            >,
+        >,
+    >>::reduce(PhantomData);
 
     // * non-terminating:
-    let () = <() as SKI<
-        Seq<S, Seq<I, Seq<I, Seq<Group<Seq<S, Seq<I, Seq<I, Empty>>>>, Empty>>>>,
-    >>::reduce(PhantomData);
+    // let () = <() as SKI<
+    //     Seq<S, Seq<I, Seq<I, Seq<Group<Seq<S, Seq<I, Seq<I, Empty>>>>, Empty>>>>,
+    // >>::reduce(PhantomData);
 }
 
 // * symbols
 
 struct X;
 struct Y;
-struct Z;
 
 struct S;
 struct K;
@@ -49,7 +48,6 @@ impl Element for K {}
 impl Element for S {}
 impl Element for X {}
 impl Element for Y {}
-impl Element for Z {}
 
 // * list
 
@@ -104,10 +102,6 @@ trait SKI<L: List> {
 
 // * I reduction rules
 
-impl SKI<Seq<I, Empty>> for () {
-    type Result = Seq<I, Empty>;
-}
-
 impl<A, Rest> SKI<Seq<I, Seq<A, Rest>>> for ()
 where
     A: Element,
@@ -115,6 +109,10 @@ where
     (): SKI<Seq<A, Rest>>,
 {
     type Result = <() as SKI<Seq<A, Rest>>>::Result;
+}
+
+impl SKI<Seq<I, Empty>> for () {
+    type Result = Seq<I, Empty>;
 }
 
 // * K reduction rules
@@ -132,9 +130,8 @@ where
 impl<A> SKI<Seq<K, Seq<A, Empty>>> for ()
 where
     A: Element,
-    (): SKI<Seq<A, Empty>>,
 {
-    type Result = Seq<K, Seq<Group<<() as SKI<Seq<A, Empty>>>::Result>, Empty>>;
+    type Result = Seq<K, Seq<A, Empty>>;
 }
 
 impl SKI<Seq<K, Empty>> for () {
@@ -154,8 +151,12 @@ where
     type Result = <() as SKI<Seq<A, Seq<C, Seq<Group<Seq<B, Seq<C, Empty>>>, Rest>>>>>::Result;
 }
 
-impl SKI<Seq<S, Empty>> for () {
-    type Result = Seq<S, Empty>;
+impl<A, B> SKI<Seq<S, Seq<A, Seq<B, Empty>>>> for ()
+where
+    A: Element,
+    B: Element,
+{
+    type Result = Seq<S, Seq<A, Seq<B, Empty>>>;
 }
 
 impl<A> SKI<Seq<S, Seq<A, Empty>>> for ()
@@ -165,12 +166,8 @@ where
     type Result = Seq<S, Seq<A, Empty>>;
 }
 
-impl<A, B> SKI<Seq<S, Seq<A, Seq<B, Empty>>>> for ()
-where
-    A: Element,
-    B: Element,
-{
-    type Result = Seq<S, Seq<A, Seq<B, Empty>>>;
+impl SKI<Seq<S, Empty>> for () {
+    type Result = Seq<S, Empty>;
 }
 
 // * Group reduction rule
@@ -179,9 +176,28 @@ impl<Expr, Rest> SKI<Seq<Group<Expr>, Rest>> for ()
 where
     Expr: List,
     Rest: List,
-    (): SKI<Expr>,
-    (): Concat<<() as SKI<Expr>>::Result, Rest>,
-    (): SKI<<() as Concat<<() as SKI<Expr>>::Result, Rest>>::Result>,
+    (): Concat<Expr, Rest>,
+    (): SKI<<() as Concat<Expr, Rest>>::Result>,
 {
-    type Result = <() as SKI<<() as Concat<<() as SKI<Expr>>::Result, Rest>>::Result>>::Result;
+    type Result = <() as SKI<<() as Concat<Expr, Rest>>::Result>>::Result;
+}
+
+// * variable symbol reduction
+
+impl<Rest: List> SKI<Seq<X, Rest>> for ()
+where
+    (): SKI<Rest>,
+{
+    type Result = Seq<X, <() as SKI<Rest>>::Result>;
+}
+
+impl<Rest: List> SKI<Seq<Y, Rest>> for ()
+where
+    (): SKI<Rest>,
+{
+    type Result = Seq<Y, <() as SKI<Rest>>::Result>;
+}
+
+impl SKI<Empty> for () {
+    type Result = Empty;
 }
